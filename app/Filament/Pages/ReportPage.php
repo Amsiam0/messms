@@ -5,17 +5,29 @@ namespace App\Filament\Pages;
 use App\Models\Expense;
 use App\Models\Meal;
 use App\Models\Member;
+use BackedEnum;
 use Carbon\Carbon;
 use Filament\Pages\Page;
+use Filament\Support\Icons\Heroicon;
 
 class ReportPage extends Page
 {
     protected string $view = 'filament.pages.report-page';
 
+
+    protected static string  |BackedEnum| null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
     public $dateFrom;
     public $dateTo;
 
     public $data = [];
+
+
+    public function mount()
+    {
+        $this->dateFrom = Carbon::now()->startOfMonth()->format('Y-m-d');
+        $this->dateTo = Carbon::now()->format('Y-m-d');
+    }
 
     public function generateReport()
     {
@@ -26,7 +38,6 @@ class ReportPage extends Page
 
         $meals = Meal::with('mealItems')
             ->whereBetween('date', [Carbon::parse($this->dateFrom)->format('Y-m-d'), Carbon::parse($this->dateTo)->format('Y-m-d')])
-
             ->get();
 
 

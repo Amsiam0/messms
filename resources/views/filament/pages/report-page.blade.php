@@ -6,16 +6,19 @@
 
         <form class="flex" wire:submit.prevent="generateReport">
 
-            <x-filament::input.wrapper>
-                <x-filament::input type="date" wire:model="dateFrom" />
-            </x-filament::input.wrapper>
+            <div style="display: flex; gap: 10px;margin-bottom: 10px">
+                <x-filament::input.wrapper>
+                    <x-filament::input type="date" wire:model="dateFrom" />
+                </x-filament::input.wrapper>
 
-            <x-filament::input.wrapper>
-                <x-filament::input type="date" wire:model="dateTo" />
-            </x-filament::input.wrapper>
+                <x-filament::input.wrapper>
+                    <x-filament::input type="date" wire:model="dateTo" />
+                </x-filament::input.wrapper>
+            </div>
             <x-filament::button type="submit" color="success">
                 Genarate
             </x-filament::button>
+
         </form>
     </div>
 
@@ -52,10 +55,10 @@
 
                             </td>
                             <td>{{ $member['totalFixedExpenses'] }}</td>
-                            <td>{{ ($data['totalVeriableExpenses'] / $totalMeal) * $member['totalMeal'] }}</td>
+                            <td>{{ number_format(($data['totalVeriableExpenses'] / $totalMeal) * $member['totalMeal'], 2) }}
+                            </td>
                             <td>
-                                {{ $member['totalFixedExpenses'] }} +
-                                {{ ($data['totalVeriableExpenses'] / $totalMeal) * $member['totalMeal'] }}
+                                {{ ceil($member['totalFixedExpenses'] + ($data['totalVeriableExpenses'] / $totalMeal) * $member['totalMeal']) }}
                             </td>
                         </tr>
                     @endforeach
