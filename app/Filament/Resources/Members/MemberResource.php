@@ -45,4 +45,9 @@ class MemberResource extends Resource
             'edit' => EditMember::route('/{record}/edit'),
         ];
     }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->hasRole('admin') ?? false;
+    }
 }

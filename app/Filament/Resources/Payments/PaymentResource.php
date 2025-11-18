@@ -108,4 +108,9 @@ class PaymentResource extends Resource
             'index' => ManagePayments::route('/'),
         ];
     }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->hasRole('admin') ?? false;
+    }
 }

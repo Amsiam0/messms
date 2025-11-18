@@ -134,4 +134,9 @@ class ExpenseResource extends Resource
             'index' => ManageExpenses::route('/'),
         ];
     }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->hasRole('admin') ?? false;
+    }
 }

@@ -45,4 +45,14 @@ class MealResource extends Resource
             'edit' => EditMeal::route('/{record}/edit'),
         ];
     }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->hasRole('admin') || auth()->user()?->hasPermissionTo('manage_meals') ?? false;
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasRole('admin') || auth()->user()?->hasPermissionTo('manage_meals') ?? false;
+    }
 }

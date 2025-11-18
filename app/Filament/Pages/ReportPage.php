@@ -17,6 +17,11 @@ class ReportPage extends Page
 
     protected static string  |BackedEnum| null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->hasRole('admin') ?? false;
+    }
+
     public $dateFrom;
     public $dateTo;
 
