@@ -20,22 +20,33 @@ class ListPaymentRequests extends ListRecords
         ];
     }
 
+    protected function getBaseQuery(): Builder
+    {
+        $query = PaymentRequest::query();
+
+        if (auth()->user()?->hasRole('member')) {
+            $query->where('member_id', auth()->user()?->member?->id);
+        }
+
+        return $query;
+    }
+
     public function getTabs(): array
     {
         return [
             'all' => Tab::make('All')
-                ->badge(fn() => PaymentRequest::count()),
+                ->badge(fn() => $this->getBaseQuery()->count()),
             'pending' => Tab::make('Pending')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'pending'))
-                ->badge(fn() => PaymentRequest::where('status', 'pending')->count())
+                ->badge(fn() => $this->getBaseQuery()->where('status', 'pending')->count())
                 ->badgeColor('warning'),
             'approved' => Tab::make('Approved')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'approved'))
-                ->badge(fn() => PaymentRequest::where('status', 'approved')->count())
+                ->badge(fn() => $this->getBaseQuery()->where('status', 'approved')->count())
                 ->badgeColor('success'),
             'rejected' => Tab::make('Rejected')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'rejected'))
-                ->badge(fn() => PaymentRequest::where('status', 'rejected')->count())
+                ->badge(fn() => $this->getBaseQuery()->where('status', 'rejected')->count())
                 ->badgeColor('danger'),
         ];
     }
