@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ExpenseRequests\Schemas;
 
+use Filament\Forms\Components\DatePicker;
 use App\Models\Member;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -25,6 +26,13 @@ class ExpenseRequestForm
                     ->default(0)
                     ->prefix('$')
                     ->minValue(0),
+                DatePicker::make('date')
+                    ->label('Date Spent')
+                    ->required()
+                    ->native(false)
+                    ->maxDate(now())
+                    ->default(now())
+                    ->helperText('The day you actually spent the money.'),
                 Toggle::make('is_fixed_cost')
                     ->label('Fixed Cost')
                     ->helperText('If this is a fixed cost, it will be distributed among members.'),

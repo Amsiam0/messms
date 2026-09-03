@@ -10,6 +10,7 @@ class ExpenseRequest extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
+        'date' => 'date',
         'is_fixed_cost' => 'boolean',
         'approved_at' => 'datetime',
     ];

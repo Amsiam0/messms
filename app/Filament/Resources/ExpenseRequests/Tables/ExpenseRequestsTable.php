@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ExpenseRequests\Tables;
 
+use Illuminate\Support\Carbon;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -104,6 +105,8 @@ class ExpenseRequestsTable
                             'note' => $record->note,
                             'amount' => $record->amount,
                             'is_fixed_cost' => $record->is_fixed_cost,
+                            // Requests predating the date column fall back to today.
+                            'date' => $record->date ?? Carbon::today(),
                         ]);
 
                         // If fixed cost, attach affected members

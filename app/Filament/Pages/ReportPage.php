@@ -65,12 +65,12 @@ class ReportPage extends Page
 
         //get all veriable expenses in this range
 
-        $totalVeriableExpenses = Expense::whereBetween('created_at', [Carbon::parse($this->dateFrom)->startOfDay(), Carbon::parse($this->dateTo)->endOfDay()])
+        $totalVeriableExpenses = Expense::whereBetween('date', [Carbon::parse($this->dateFrom)->toDateString(), Carbon::parse($this->dateTo)->toDateString()])
             ->where('is_fixed_cost', 0)
             ->sum('amount');
 
         //get all fixed expenses in this range
-        $totalFixedExpenses = Expense::with('effectOn')->whereBetween('created_at', [Carbon::parse($this->dateFrom)->startOfDay(), Carbon::parse($this->dateTo)->endOfDay()])
+        $totalFixedExpenses = Expense::with('effectOn')->whereBetween('date', [Carbon::parse($this->dateFrom)->toDateString(), Carbon::parse($this->dateTo)->toDateString()])
             ->where('is_fixed_cost', 1)
             ->get();
 

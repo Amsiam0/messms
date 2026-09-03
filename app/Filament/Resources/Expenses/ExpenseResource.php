@@ -39,7 +39,7 @@ class ExpenseResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('effectOn')->orderBy('created_at', 'desc');
+        return parent::getEloquentQuery()->with('effectOn')->orderBy('date', 'desc')->orderBy('id', 'desc');
     }
 
 
@@ -49,6 +49,13 @@ class ExpenseResource extends Resource
             ->components([
                 Textarea::make('note')
                     ->columnSpanFull(),
+                DatePicker::make('date')
+                    ->label('Expense Date')
+                    ->required()
+                    ->native(false)
+                    ->maxDate(now())
+                    ->default(now())
+                    ->helperText('The day the money was actually spent.'),
                 TextInput::make('amount')
                     ->required()
                     ->numeric()
@@ -75,6 +82,9 @@ class ExpenseResource extends Resource
         return $table
             ->columns([
 
+                TextColumn::make('date')
+                    ->date()
+                    ->sortable(),
                 TextColumn::make('note')->searchable(),
                 TextColumn::make('amount')
                     ->numeric()
@@ -102,7 +112,7 @@ class ExpenseResource extends Resource
                     '1' => 'Yes',
                 ]),
 
-                Filter::make('created_at')
+                Filter::make('date')
                     ->schema([
                         DatePicker::make('from')
                             ->label('From')->default(Carbon::now()->firstOfMonth()),
@@ -111,9 +121,9 @@ class ExpenseResource extends Resource
                     ])
                     ->query(function ($query, array $data) {
                         return $query
-                            ->whereBetween('created_at', [
-                                Carbon::parse($data['from'])->startOfDay(),
-                                Carbon::parse($data['to'])->endOfDay(),
+                            ->whereBetween('date', [
+                                Carbon::parse($data['from'])->toDateString(),
+                                Carbon::parse($data['to'])->toDateString(),
                             ]);
                     })
             ])
