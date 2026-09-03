@@ -52,7 +52,7 @@ class UserForm
                     ->helperText('Admins have full access, Members can only submit requests'),
                 Select::make('member_id')
                     ->label('Link to Member')
-                    ->relationship('member', 'name')
+                    ->relationship('member', 'name', fn ($query) => $query->where('status', 'active'))
                     ->searchable()
                     ->preload()
                     ->visible(fn ($get) => $get('role') === 'member')

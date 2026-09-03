@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Expenses;
 
 use App\Filament\Resources\Expenses\Pages\ManageExpenses;
-use App\Filament\Resources\Members\Tables\MembersTable;
+use App\Filament\Resources\Members\Tables\MemberPickerTable;
 use App\Models\Expense;
 use App\Models\Member;
 use BackedEnum;
@@ -56,13 +56,13 @@ class ExpenseResource extends Resource
 
                 ModalTableSelect::make('effect_on')
                     ->multiple()
-                    ->relationship('effectOn', 'name')
-                    ->tableConfiguration(MembersTable::class)
+                    ->relationship('effectOn', 'name', fn ($query) => $query->where('status', 'active'))
+                    ->tableConfiguration(MemberPickerTable::class)
                     ->visible(fn($get) => $get('is_fixed_cost')),
                 Checkbox::make('is_fixed_cost')->default(false)->live(),
 
                 Select::make('member_id')
-                    ->options(Member::all()->pluck('name', 'id'))
+                    ->options(Member::active()->pluck('name', 'id'))
                     ->required(fn($get) => $get('make_payment'))
                     ->searchable()
                     ->visible(fn($get) => $get('make_payment')),
@@ -95,7 +95,7 @@ class ExpenseResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('member')->multiple()->relationship('member', 'name'),
+                SelectFilter::make('member')->multiple()->relationship('member', 'name', fn ($query) => $query->where('status', 'active')),
 
                 SelectFilter::make('is_fixed_cost')->label('Fixed Cost')->options([
                     '0' => 'No',

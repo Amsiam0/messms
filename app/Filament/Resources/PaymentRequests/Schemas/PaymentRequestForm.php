@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PaymentRequests\Schemas;
 
+use App\Models\Member;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -32,7 +33,8 @@ class PaymentRequestForm
                     ->default('out')
                     ->helperText('Money In increases your balance, Money Out decreases it.'),
                 Select::make('member_id')
-                    ->relationship('member', 'name')
+                    ->options(fn ($get) => Member::activeOrSelected($get('member_id')))
+                    ->searchable()
                     ->required()
                     ->default(fn() => auth()->user()?->member?->id)
                     ->disabled(fn() => auth()->user()?->hasRole('member'))

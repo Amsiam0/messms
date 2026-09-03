@@ -74,7 +74,7 @@ class ExpenseRequestsTable
                             $formFields[] = Select::make('affected_members')
                                 ->label('Select Members Affected by this Fixed Cost')
                                 ->multiple()
-                                ->options(Member::where('status', 'active')->pluck('name', 'id'))
+                                ->options(Member::active()->pluck('name', 'id'))
                                 ->searchable()
                                 ->preload()
                                 ->required()
@@ -84,7 +84,7 @@ class ExpenseRequestsTable
                         // Add payment creation option (like in ExpenseResource)
                         $formFields[] = Select::make('member_id')
                             ->label('Member')
-                            ->options(Member::all()->pluck('name', 'id'))
+                            ->options(Member::active()->pluck('name', 'id'))
                             ->required(fn($get) => $get('make_payment'))
                             ->searchable()
                             ->visible(fn($get) => $get('make_payment'));

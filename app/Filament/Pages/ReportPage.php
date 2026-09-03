@@ -37,7 +37,7 @@ class ReportPage extends Page
     public function generateReport()
     {
 
-        $getAllMembers = Member::all();
+        $getAllMembers = Member::active()->get();
 
         //get all meal in this range
 

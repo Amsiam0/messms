@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Payments;
 
+use App\Models\Member;
 use App\Filament\Resources\Members\Tables\MembersTable;
 use App\Filament\Resources\Payments\Pages\ManagePayments;
 use App\Models\Payment;
@@ -42,7 +43,9 @@ class PaymentResource extends Resource
                 Grid::make()->schema([
                     TextInput::make('note'),
                     TextInput::make('amount')->required()->numeric(2),
-                    Select::make('member_id')->relationship('member', 'name'),
+                    Select::make('member_id')
+                        ->options(fn ($get) => Member::activeOrSelected($get('member_id')))
+                        ->searchable(),
                     Select::make('type')->options([
                         'in' => 'In',
                         'out' => 'Out',
@@ -70,7 +73,7 @@ class PaymentResource extends Resource
                     ->dateTime()
             ])->defaultSort('created_at', 'desc')
             ->filters([
-                SelectFilter::make('member')->relationship('member', 'name'),
+                SelectFilter::make('member')->relationship('member', 'name', fn ($query) => $query->where('status', 'active')),
                 SelectFilter::make('type')->options([
                     'in' => 'In',
                     'out' => 'Out',
