@@ -38,7 +38,6 @@ class ExpenseRequestForm
                     ->helperText('If this is a fixed cost, it will be distributed among members.'),
                 Select::make('member_id')
                     ->options(fn ($get) => Member::activeOrSelected($get('member_id')))
-                    ->searchable()
                     ->required()
                     ->default(fn() => auth()->user()?->member?->id)
                     ->disabled(fn() => auth()->user()?->hasRole('member'))

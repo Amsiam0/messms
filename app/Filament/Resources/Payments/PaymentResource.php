@@ -44,8 +44,7 @@ class PaymentResource extends Resource
                     TextInput::make('note'),
                     TextInput::make('amount')->required()->numeric(2),
                     Select::make('member_id')
-                        ->options(fn ($get) => Member::activeOrSelected($get('member_id')))
-                        ->searchable(),
+                        ->options(fn ($get) => Member::activeOrSelected($get('member_id'))),
                     Select::make('type')->options([
                         'in' => 'In',
                         'out' => 'Out',

@@ -24,8 +24,10 @@ class MealForm
                     ->relationship('mealItems')
                     ->schema([
                         Select::make('member_id')
+                            // No searchable(): Filament v4 beta boots Choices.js
+                            // for searchable selects and its init throws inside
+                            // a Repeater, leaving the field blank.
                             ->options(fn ($get) => Member::activeOrSelected($get('member_id')))
-                            ->searchable()
                             ->label('Member'),
                         TextInput::make('breakfast')->numeric(2)->required()->default('0'),
                         TextInput::make('lunch')->numeric(2)->required()->default('0'),
