@@ -141,6 +141,29 @@
   php artisan migrate:fresh
   ```
 
+### 8. Enable Automatic Meal Generation
+
+Each member's weekly meal schedule is set under **Meal Schedule** in the admin
+panel. Daily meal sheets are created from those schedules by:
+
+```bash
+php artisan meals:generate                          # today
+php artisan meals:generate --date=2026-09-06        # one date
+php artisan meals:generate --from=2026-09-01 --to=2026-09-30
+```
+
+This is safe to run repeatedly: it only fills gaps, and never overwrites a meal
+row that has already been edited by hand.
+
+For it to run by itself at 00:05 daily, the server needs one cron entry:
+
+```
+* * * * * cd /path/to/messms && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Without that entry nothing is generated automatically. Until it is in place,
+use the **Generate from config** button on the Meals page.
+
 ## Troubleshooting
 - **PHP version mismatch**: Check `composer.json` for required PHP version.
 - **Database errors**: Verify `.env` database settings.
