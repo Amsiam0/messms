@@ -37,8 +37,11 @@
             .mr-table tbody tr:nth-child(even) { background:#fafafa; }
             .dark .mr-table tbody tr:nth-child(even) { background:rgba(255,255,255,.03); }
 
-            .mr-num { text-align:right; font-variant-numeric:tabular-nums; }
-            .mr-mid { text-align:center; font-variant-numeric:tabular-nums; }
+            /* Qualified with .mr-table so these beat `.mr-table thead th`,
+               which would otherwise left-align every header regardless of the
+               column's own alignment. */
+            .mr-table th.mr-num, .mr-table td.mr-num { text-align:right; font-variant-numeric:tabular-nums; }
+            .mr-table th.mr-mid, .mr-table td.mr-mid { text-align:center; font-variant-numeric:tabular-nums; }
             .mr-name { font-weight:500; }
             .mr-muted { color:#9ca3af; }
             .mr-strong { font-weight:700; }
