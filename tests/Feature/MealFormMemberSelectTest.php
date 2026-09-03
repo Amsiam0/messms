@@ -30,7 +30,8 @@ it('shows the saved member in the repeater select when editing a meal', function
     $rows = collect($state['meals'] ?? []);
 
     expect($rows)->toHaveCount(1);
-    expect($rows->first()['member_id'])->toBe($member->id);
+    // Filament hydrates select state as a string; compare by value.
+    expect((int) $rows->first()['member_id'])->toBe($member->id);
 
     // The stored value is right; the question is whether the box shows a label.
     Livewire::test(EditMeal::class, ['record' => $meal->getRouteKey()])
