@@ -51,7 +51,10 @@
             .mr-table tfoot td { border-top:2px solid #d1d5db; font-weight:700; padding-top:12px; }
             .dark .mr-table tfoot td { border-top-color:#4b5563; }
 
-            .mr-actions { display:flex; justify-content:flex-end; margin-bottom:8px; }
+            .mr-actions { display:flex; justify-content:flex-end; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+            .mr-settled { border-radius:10px; padding:10px 14px; margin-bottom:16px; font-size:13px;
+                          background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+            .dark .mr-settled { background:rgba(16,185,129,.12); color:#6ee7b7; border-color:rgba(16,185,129,.3); }
         </style>
     @endverbatim
 
@@ -81,6 +84,18 @@
                                 x-data x-on:click="$dispatch('download-report')">
                 Save as image
             </x-filament::button>
+
+            @if (! $settlement && $data['totalCost'] > 0)
+                <x-filament::button
+                    type="button"
+                    color="danger"
+                    icon="heroicon-m-banknotes"
+                    wire:click="settleReport"
+                    wire:loading.attr="disabled"
+                    wire:confirm="Charge {{ count($data['members']) }} member(s) a total of {{ number_format($data['totalCost'], 2) }} for {{ \Carbon\Carbon::parse($data['dateFrom'])->format('d M Y') }} to {{ \Carbon\Carbon::parse($data['dateTo'])->format('d M Y') }}?\n\nThis creates an 'out' payment per member and reduces their balance. It can only be done once for this period.">
+                    Charge members
+                </x-filament::button>
+            @endif
         </div>
 
         <div id="report-capture" class="mr-card">
@@ -104,6 +119,14 @@
                     </div>
                 @endforeach
             </div>
+
+            @if ($settlement)
+                <div class="mr-settled">
+                    Settled on {{ $settlement['settled_on'] }}@if ($settlement['settled_by']) by {{ $settlement['settled_by'] }}@endif
+                    &mdash; {{ $settlement['members'] }} member(s) charged
+                    {{ number_format($settlement['total'], 2) }}.
+                </div>
+            @endif
 
             @if ($data['totalMeals'] <= 0)
                 <div class="mr-note">

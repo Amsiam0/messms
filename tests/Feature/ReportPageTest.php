@@ -135,3 +135,80 @@ it('warns instead of dividing by zero when no meals exist', function () {
         ->assertOk()
         ->assertSee('No meals were recorded in this range');
 });
+
+it('counts an expense dated on the last day of the range', function () {
+    $siam = reportMember('Siam');
+    mealFor('2026-09-05', $siam, 0, 0, 1);
+
+    // Dated exactly on dateTo - the boundary a string comparison drops.
+    Expense::create(['note' => 'Last day bazar', 'amount' => 500, 'is_fixed_cost' => false, 'date' => '2026-09-30']);
+
+    $data = Livewire::test(ReportPage::class)
+        ->set('dateFrom', '2026-09-01')->set('dateTo', '2026-09-30')
+        ->call('generateReport')->get('data');
+
+    expect($data['totalVariableExpenses'])->toBe(500.0);
+});
+
+it('counts a meal dated on the last day of the range', function () {
+    $siam = reportMember('Siam');
+    mealFor('2026-09-30', $siam, 0, 0, 1);
+
+    $data = Livewire::test(ReportPage::class)
+        ->set('dateFrom', '2026-09-01')->set('dateTo', '2026-09-30')
+        ->call('generateReport')->get('data');
+
+    expect($data['totalMeals'])->toBe(1.0);
+});
+
+it('charges every member their total cost and updates balances', function () {
+    $siam = reportMember('Siam');
+    $siam->update(['balance' => 1000]);
+    mealFor('2026-09-05', $siam, 0, 0, 2);
+    Expense::create(['note' => 'Bazar', 'amount' => 300, 'is_fixed_cost' => false, 'date' => '2026-09-05']);
+
+    Livewire::test(ReportPage::class)
+        ->set('dateFrom', '2026-09-01')->set('dateTo', '2026-09-30')
+        ->call('generateReport')
+        ->call('settleReport')
+        ->assertOk();
+
+    $payment = App\Models\Payment::where('member_id', $siam->id)->first();
+
+    expect($payment)->not->toBeNull()
+        ->and($payment->type)->toBe('out')
+        ->and($payment->amount)->toBe(300.0)
+        ->and($siam->fresh()->balance)->toBe(700.0);
+});
+
+it('will not charge the same period twice', function () {
+    $siam = reportMember('Siam');
+    $siam->update(['balance' => 1000]);
+    mealFor('2026-09-05', $siam, 0, 0, 2);
+    Expense::create(['note' => 'Bazar', 'amount' => 300, 'is_fixed_cost' => false, 'date' => '2026-09-05']);
+
+    $page = Livewire::test(ReportPage::class)
+        ->set('dateFrom', '2026-09-01')->set('dateTo', '2026-09-30')
+        ->call('generateReport')
+        ->call('settleReport')
+        ->call('settleReport');
+
+    expect(App\Models\Payment::count())->toBe(1)
+        ->and(App\Models\Settlement::count())->toBe(1)
+        ->and($siam->fresh()->balance)->toBe(700.0);
+
+    $page->assertSee('Settled on');
+});
+
+it('hides the charge button once a period is settled', function () {
+    $siam = reportMember('Siam');
+    mealFor('2026-09-05', $siam, 0, 0, 2);
+    Expense::create(['note' => 'Bazar', 'amount' => 300, 'is_fixed_cost' => false, 'date' => '2026-09-05']);
+
+    Livewire::test(ReportPage::class)
+        ->set('dateFrom', '2026-09-01')->set('dateTo', '2026-09-30')
+        ->call('generateReport')
+        ->assertSee('Charge members')
+        ->call('settleReport')
+        ->assertDontSee('Charge members');
+});

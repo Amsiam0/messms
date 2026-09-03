@@ -126,10 +126,8 @@ class ExpenseResource extends Resource
                     ])
                     ->query(function ($query, array $data) {
                         return $query
-                            ->whereBetween('date', [
-                                Carbon::parse($data['from'])->toDateString(),
-                                Carbon::parse($data['to'])->toDateString(),
-                            ]);
+                            ->whereDate('date', '>=', Carbon::parse($data['from'])->toDateString())
+                            ->whereDate('date', '<=', Carbon::parse($data['to'])->toDateString());
                     })
             ])
             ->recordActions([

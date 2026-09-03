@@ -5,7 +5,10 @@ namespace App\Filament\Pages;
 use App\Models\Expense;
 use App\Models\Meal;
 use App\Models\Member;
+use App\Services\MessSettler;
+use App\Services\PeriodAlreadySettled;
 use BackedEnum;
+use Filament\Notifications\Notification;
 use Carbon\Carbon;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -26,6 +29,9 @@ class ReportPage extends Page
     public $dateTo;
 
     public $data = [];
+
+    /** Settlement covering the currently generated range, if any. */
+    public $settlement = null;
 
     public function mount()
     {
@@ -58,7 +64,7 @@ class ReportPage extends Page
             ]])
             ->all();
 
-        foreach (Meal::with('mealItems')->whereBetween('date', [$from, $to])->get() as $meal) {
+        foreach (Meal::with('mealItems')->whereDate('date', '>=', $from)->whereDate('date', '<=', $to)->get() as $meal) {
             foreach ($meal->mealItems as $item) {
                 if (! isset($members[$item->member_id])) {
                     continue; // A meal belonging to a member who is no longer active.
@@ -71,7 +77,12 @@ class ReportPage extends Page
             }
         }
 
-        $expenses = Expense::with('effectOn')->whereBetween('date', [$from, $to])->get();
+        // whereDate, not whereBetween: the date cast stores '... 00:00:00', so a
+        // plain Y-m-d upper bound would exclude the range's last day.
+        $expenses = Expense::with('effectOn')
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
+            ->get();
 
         $totalVariableExpenses = (float) $expenses->where('is_fixed_cost', false)->sum('amount');
 
@@ -112,5 +123,74 @@ class ReportPage extends Page
             'dateFrom' => $from,
             'dateTo' => $to,
         ];
+
+        $this->refreshSettlement();
+    }
+
+    protected function refreshSettlement(): void
+    {
+        if (! $this->data) {
+            $this->settlement = null;
+
+            return;
+        }
+
+        $existing = app(MessSettler::class)->settlementFor(
+            Carbon::parse($this->data['dateFrom']),
+            Carbon::parse($this->data['dateTo']),
+        );
+
+        $this->settlement = $existing ? [
+            'settled_on' => $existing->created_at?->format('d M Y'),
+            'settled_by' => $existing->settledBy?->name,
+            'total' => $existing->total_amount,
+            'members' => $existing->member_count,
+        ] : null;
+    }
+
+    /**
+     * Charge every member their share of this period, as an 'out' payment that
+     * reduces their balance. Refuses if the period was already settled.
+     */
+    public function settleReport(): void
+    {
+        if (! $this->data) {
+            return;
+        }
+
+        $charges = collect($this->data['members'])
+            ->mapWithKeys(fn(array $m) => [$m['id'] => $m['totalCost']])
+            ->all();
+
+        try {
+            $settlement = app(MessSettler::class)->settle(
+                Carbon::parse($this->data['dateFrom']),
+                Carbon::parse($this->data['dateTo']),
+                $charges,
+                auth()->user(),
+            );
+        } catch (PeriodAlreadySettled $e) {
+            Notification::make()
+                ->danger()
+                ->title('Already settled')
+                ->body($e->getMessage())
+                ->send();
+
+            $this->refreshSettlement();
+
+            return;
+        }
+
+        Notification::make()
+            ->success()
+            ->title('Members charged')
+            ->body(sprintf(
+                '%d member(s) charged a total of %s. Balances updated.',
+                $settlement->member_count,
+                number_format($settlement->total_amount, 2),
+            ))
+            ->send();
+
+        $this->generateReport();
     }
 }
