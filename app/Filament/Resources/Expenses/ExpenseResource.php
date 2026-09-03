@@ -105,7 +105,12 @@ class ExpenseResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('member')->multiple()->relationship('member', 'name', fn ($query) => $query->where('status', 'active')),
+                // Expenses reach members only through effectOn (the fixed-cost
+                // distribution); there has never been a member relationship.
+                SelectFilter::make('effectOn')
+                    ->label('Affected Member')
+                    ->multiple()
+                    ->relationship('effectOn', 'name', fn ($query) => $query->where('status', 'active')),
 
                 SelectFilter::make('is_fixed_cost')->label('Fixed Cost')->options([
                     '0' => 'No',
