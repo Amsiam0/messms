@@ -116,12 +116,12 @@ later than `to` is an error, not an empty run.
 `summary(): string` used verbatim by both the console output and the Filament
 notification body.
 
-### Ordering note
+### Membership is read per date
 
-`generateRange` processes dates in ascending order. A member deactivated
-midway through a range therefore receives rows for dates processed before the
-deactivation only if the deactivation happened before the run started —
-generation reads member status once per date, not once per run.
+`generateRange` processes dates in ascending order and re-reads
+`Member::active()` for each one. Deactivating a member has no effect on rows
+already written for earlier dates in the same run; it simply stops new rows
+being created from that point on. Past dates are never revisited.
 
 ## Command and schedule
 
@@ -167,8 +167,12 @@ Access mirrors the existing role patterns in this codebase:
   `where('id', auth()->user()->member->id)` when the viewer is a member without
   `manage_meals`.
 
-Deactivated members are excluded, consistent with the rule that they appear
-nowhere but the member list.
+A member who also holds `manage_meals` sees every member's schedule, matching
+how that permission already opens the whole Meals section.
+
+Deactivated members are excluded from the query, consistent with the rule that
+they appear nowhere but the member list. A user whose own member record has
+been deactivated therefore sees an empty list rather than an error.
 
 Table columns: member name, and a summary column rendering each meal type with
 the days it applies to — `Lunch: Sat, Sun · Dinner: daily`. A member with no
