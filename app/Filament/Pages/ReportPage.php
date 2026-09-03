@@ -14,8 +14,7 @@ class ReportPage extends Page
 {
     protected string $view = 'filament.pages.report-page';
 
-
-    protected static string  |BackedEnum| null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentChartBar;
 
     public static function shouldRegisterNavigation(): bool
     {
@@ -23,10 +22,10 @@ class ReportPage extends Page
     }
 
     public $dateFrom;
+
     public $dateTo;
 
     public $data = [];
-
 
     public function mount()
     {
@@ -34,64 +33,84 @@ class ReportPage extends Page
         $this->dateTo = Carbon::now()->format('Y-m-d');
     }
 
+    /**
+     * Every figure the view shows is computed here, so the template only
+     * formats what it is handed. Division by the meal total in particular has
+     * to happen where the zero case can be handled.
+     */
     public function generateReport()
     {
+        $from = Carbon::parse($this->dateFrom)->toDateString();
+        $to = Carbon::parse($this->dateTo)->toDateString();
 
-        $getAllMembers = Member::active()->get();
+        $members = Member::active()->orderBy('name')->get()
+            ->mapWithKeys(fn(Member $member) => [$member->id => [
+                'id' => $member->id,
+                'name' => $member->name,
+                'balance' => (float) $member->balance,
+                'breakfast' => 0.0,
+                'lunch' => 0.0,
+                'dinner' => 0.0,
+                'meals' => 0.0,
+                'fixedCost' => 0.0,
+                'variableCost' => 0.0,
+                'totalCost' => 0.0,
+            ]])
+            ->all();
 
-        //get all meal in this range
+        foreach (Meal::with('mealItems')->whereBetween('date', [$from, $to])->get() as $meal) {
+            foreach ($meal->mealItems as $item) {
+                if (! isset($members[$item->member_id])) {
+                    continue; // A meal belonging to a member who is no longer active.
+                }
 
-        $meals = Meal::with('mealItems')
-            ->whereBetween('date', [Carbon::parse($this->dateFrom)->format('Y-m-d'), Carbon::parse($this->dateTo)->format('Y-m-d')])
-            ->get();
-
-
-
-        foreach ($meals as $meal) {
-            foreach ($meal->mealItems as $mealItem) {
-
-                $getAllMembers = $getAllMembers->map(function ($member) use ($mealItem) {
-                    if ($member->id == $mealItem->member_id) {
-                        $member->totalBreakfast += $mealItem->breakfast;
-                        $member->totalLunch += $mealItem->lunch;
-                        $member->totalDinner += $mealItem->dinner;
-                        $member->totalMeal += $mealItem->breakfast + $mealItem->lunch + $mealItem->dinner;
-                    }
-
-                    return $member;
-                });
+                $members[$item->member_id]['breakfast'] += $item->breakfast;
+                $members[$item->member_id]['lunch'] += $item->lunch;
+                $members[$item->member_id]['dinner'] += $item->dinner;
+                $members[$item->member_id]['meals'] += $item->breakfast + $item->lunch + $item->dinner;
             }
         }
 
-        //get all veriable expenses in this range
+        $expenses = Expense::with('effectOn')->whereBetween('date', [$from, $to])->get();
 
-        $totalVeriableExpenses = Expense::whereBetween('date', [Carbon::parse($this->dateFrom)->toDateString(), Carbon::parse($this->dateTo)->toDateString()])
-            ->where('is_fixed_cost', 0)
-            ->sum('amount');
+        $totalVariableExpenses = (float) $expenses->where('is_fixed_cost', false)->sum('amount');
 
-        //get all fixed expenses in this range
-        $totalFixedExpenses = Expense::with('effectOn')->whereBetween('date', [Carbon::parse($this->dateFrom)->toDateString(), Carbon::parse($this->dateTo)->toDateString()])
-            ->where('is_fixed_cost', 1)
-            ->get();
+        foreach ($expenses->where('is_fixed_cost', true) as $expense) {
+            $affected = $expense->effectOn;
 
-        foreach ($totalFixedExpenses as $totalFixedExpense) {
-            $avarage = $totalFixedExpense->amount / ($totalFixedExpense?->effectOn?->count() ?? 1);
+            if ($affected->isEmpty()) {
+                continue; // Nobody to charge it to.
+            }
 
-            foreach ($totalFixedExpense->effectOn as $effectOn) {
+            $share = $expense->amount / $affected->count();
 
-                $getAllMembers = $getAllMembers->map(function ($member) use ($effectOn, $avarage) {
-                    if ($member->id == $effectOn->id) {
-                        $member->totalFixedExpenses += $avarage;
-                    }
-                    return $member;
-                });
+            foreach ($affected as $member) {
+                if (isset($members[$member->id])) {
+                    $members[$member->id]['fixedCost'] += $share;
+                }
             }
         }
 
+        $totalMeals = array_sum(array_column($members, 'meals'));
+
+        // No meals in range means no per-meal rate exists; everyone's share is
+        // zero rather than a division by zero.
+        $ratePerMeal = $totalMeals > 0 ? $totalVariableExpenses / $totalMeals : 0.0;
+
+        foreach ($members as $id => $member) {
+            $members[$id]['variableCost'] = round($member['meals'] * $ratePerMeal, 2);
+            $members[$id]['totalCost'] = round($member['fixedCost'] + $members[$id]['variableCost'], 2);
+        }
 
         $this->data = [
-            'members' => $getAllMembers,
-            'totalVeriableExpenses' => $totalVeriableExpenses,
+            'members' => array_values($members),
+            'totalVariableExpenses' => $totalVariableExpenses,
+            'totalFixedExpenses' => round(array_sum(array_column($members, 'fixedCost')), 2),
+            'totalCost' => round(array_sum(array_column($members, 'totalCost')), 2),
+            'totalMeals' => (float) $totalMeals,
+            'ratePerMeal' => round($ratePerMeal, 2),
+            'dateFrom' => $from,
+            'dateTo' => $to,
         ];
     }
 }

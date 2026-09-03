@@ -27,4 +27,5 @@ it('renders every panel page', function (string $url) {
     '/admin/expense-requests',
     '/admin/payment-requests',
     '/admin/users',
+    '/admin/report-page',
 ]);
